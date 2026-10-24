@@ -540,8 +540,6 @@ fn write_with_backup(path: &Path, text: &str) -> Result<()> {
 mod tests {
     use super::*;
 
-    const NASTY: &str = "a b$x`y`;z'q";
-
     #[test]
     fn claude_code_quotes_like_posix_sh_with_forward_slashes_on_windows() {
         assert_eq!(
@@ -578,6 +576,7 @@ mod tests {
     #[test]
     fn the_unix_command_runs_a_binary_whose_path_has_shell_characters() {
         use std::os::unix::fs::PermissionsExt;
+        const NASTY: &str = "a b$x`y`;z'q";
         for h in [Harness::ClaudeCode, Harness::Codex] {
             let tmp = tempfile::tempdir().unwrap();
             let dir = tmp.path().join(NASTY);

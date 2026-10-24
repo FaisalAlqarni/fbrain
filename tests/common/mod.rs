@@ -162,8 +162,8 @@ pub fn owner_output(mut cmd: std::process::Command) -> std::process::Output {
             &mut m,
             &mut s,
             std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
         )
     };
     assert_eq!(rc, 0);

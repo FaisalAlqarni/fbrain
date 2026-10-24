@@ -64,8 +64,8 @@ fn on_a_terminal(mut cmd: std::process::Command) -> Option<i32> {
             &mut m,
             &mut s,
             std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
         )
     };
     assert_eq!(rc, 0);

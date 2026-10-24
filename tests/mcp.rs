@@ -548,12 +548,12 @@ fn a_hung_resident_process_opens_the_breaker_and_leaks_no_threads() {
     let sb = Sandbox::new();
     let b = brain(&sb);
     install_model(&sb);
+    let mut server = ready_server(&sb, &[("FBRAIN_TEST_SERVE_REQUEST", "stall:60000")]);
     let mut c = Mcp::spawn(
         &sb,
         &b,
         &[
             ("FBRAIN_MODEL", TEST_MODEL),
-            ("FBRAIN_TEST_SERVE_REQUEST", "stall:60000"),
             ("FBRAIN_TEST_CALL_TIMEOUT_MS", "300"),
         ],
     );
@@ -589,6 +589,8 @@ fn a_hung_resident_process_opens_the_breaker_and_leaks_no_threads() {
     let h = c.ok("health", json!({}));
     assert_eq!(h["breaker"]["state"], "open", "{h}");
     assert!(h["breaker"]["until_s"].is_number(), "{h}");
+    let _ = server.kill();
+    let _ = server.wait();
 }
 
 #[test]
@@ -628,19 +630,35 @@ fn an_endpoint_that_is_not_the_resident_process_is_an_error_not_keyword_hits() {
     let sb = Sandbox::new();
     let b = brain(&sb);
     install_model(&sb);
-    // Start a real server through the CLI, then make its pid file lie.
-    sb.cmd()
-        .env("FBRAIN_MODEL", TEST_MODEL)
-        .arg("--brain")
-        .arg(&b)
-        .args(["search", "consent"])
-        .assert()
-        .success();
+    // Start a real server, then make its pid file lie.
+    let mut server = ready_server(&sb, &[]);
     fs::write(sb.runtime_dir().join("serve.pid"), "1").unwrap();
     let mut c = Mcp::spawn(&sb, &b, &[("FBRAIN_MODEL", TEST_MODEL)]);
     c.initialize("test-client");
     let r = c.call("search", json!({"query": "consent opt-out"}));
     assert!(error_text(&r).contains("not by the fbrain server"), "{r}");
+    let _ = server.kill();
+    let _ = server.wait();
+}
+
+/// A resident process that has loaded the model, so a test does not race the client's 3 s start wait
+/// on a slow machine.
+fn ready_server(sb: &Sandbox, env: &[(&str, &str)]) -> Child {
+    let mut server = sb
+        .std_cmd()
+        .arg("serve")
+        .env("FBRAIN_MODEL", TEST_MODEL)
+        .envs(env.iter().copied())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let mut first = String::new();
+    BufReader::new(server.stdout.take().unwrap())
+        .read_line(&mut first)
+        .unwrap();
+    assert!(first.starts_with("ready"), "{first}");
+    server
 }
 
 #[cfg(unix)]

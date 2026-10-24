@@ -1,0 +1,3 @@
+# ort's prebuilt ONNX Runtime for macOS is built for 13.4; rustc's default (11.0) fails to link it.
+[env]
+MACOSX_DEPLOYMENT_TARGET = "13.4"

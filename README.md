@@ -37,8 +37,8 @@ The installers put `fbrain` in `~/.cargo/bin` (or `$CARGO_HOME/bin`). Check with
 Release builds exist for:
 
 - Linux x64 and arm64, glibc 2.39 or newer (Ubuntu 24.04 or newer)
-- macOS on Apple Silicon
-- Windows 11, x64 and arm64 (a recent build)
+- macOS 13.4 or newer on Apple Silicon
+- Windows 11, x64 and arm64 (a recent build), with the Microsoft Visual C++ Redistributable installed (ONNX Runtime links the dynamic MSVC runtime)
 
 CI builds and tests Linux x64, macOS arm64 and Windows x64. The Linux arm64 and Windows arm64 builds are produced but not tested in CI.
 

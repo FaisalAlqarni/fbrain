@@ -6,7 +6,6 @@ use common::Sandbox;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
 
 const FBRAIN: &str = env!("CARGO_BIN_EXE_fbrain");
 
@@ -198,8 +197,8 @@ fn the_installed_command_prints_the_brief_for_the_mapped_project() {
         .shell_cmd(&cmd)
         .env("FBRAIN_BRAIN", &brain)
         .current_dir(&repo)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::piped())
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
         .spawn()
         .unwrap();
     use std::io::Write;
