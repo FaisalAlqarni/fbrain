@@ -1289,8 +1289,15 @@ mod sys {
     }
 
     pub fn listener(opts: ListenerOptions<'_>) -> std::io::Result<Listener> {
-        use interprocess::os::unix::local_socket::ListenerOptionsExt;
-        opts.reclaim_name(false).mode(0o600).create_sync()
+        let opts = opts.reclaim_name(false);
+        // macOS cannot set a socket's mode before bind (interprocess returns Unsupported); the
+        // 0700 runtime dir and the token keep other users out there.
+        #[cfg(not(target_os = "macos"))]
+        let opts = {
+            use interprocess::os::unix::local_socket::ListenerOptionsExt;
+            opts.mode(0o600)
+        };
+        opts.create_sync()
     }
 
     /// The 0700 directory already keeps other users out; where the OS reports the peer pid

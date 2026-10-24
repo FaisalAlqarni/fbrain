@@ -1253,10 +1253,9 @@ mod tests {
         let out = render(&brain, &brief_proposal(repo.path()));
         assert!(out.contains(".fbrain.toml"), "{out}");
         assert!(out.contains("[projects.shop]"), "{out}");
-        assert!(
-            out.contains(&repo.path().canonicalize().unwrap().display().to_string()),
-            "{out}"
-        );
+        let shown = repo.path().canonicalize().unwrap().display().to_string();
+        let shown = shown.strip_prefix(r"\\?\").unwrap_or(&shown);
+        assert!(out.contains(shown), "{out}");
     }
 
     #[test]
