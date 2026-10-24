@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Cache test model
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/fbrain-test-model
+          key: fbrain-test-model-eg300-5090578d9565bb06545b4552f76e6bc2c93e4a66
+      - name: Download test model
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -e
+          dir="$RUNNER_TEMP/fbrain-test-model"
+          base=https://huggingface.co/onnx-community/embeddinggemma-300m-ONNX/resolve/5090578d9565bb06545b4552f76e6bc2c93e4a66
+          mkdir -p "$dir/onnx"
+          for f in tokenizer.json onnx/model_q4.onnx onnx/model_q4.onnx_data; do
+            curl -fsSL -o "$dir/$f" "$base/$f"
+          done
+      - name: Verify test model checksums
+        shell: bash
+        run: |
+          set -e
+          cd "$RUNNER_TEMP/fbrain-test-model"
+          cat > "$RUNNER_TEMP/SHA256SUMS" <<'SUMS'
+          4dda02faaf32bc91031dc8c88457ac272b00c1016cc679757d1c441b248b9c47  tokenizer.json
+          ad1dfee81a70f7944b9b9d1cc6e48075b832881cf33fab2f2b248be78f3f0043  onnx/model_q4.onnx
+          599962c3143b040de2dd05e5975be3e9091dd067cacc6a8f7186e3203bab9e02  onnx/model_q4.onnx_data
+          SUMS
+          if command -v sha256sum >/dev/null; then sha256sum -c "$RUNNER_TEMP/SHA256SUMS"; else shasum -a 256 -c "$RUNNER_TEMP/SHA256SUMS"; fi
+      - name: Point tests at the test model
+        shell: bash
+        run: echo "FBRAIN_TEST_MODEL_DIR=$RUNNER_TEMP/fbrain-test-model" >> "$GITHUB_ENV"
+      - name: Format
+        if: runner.os == 'Linux'
+        run: cargo fmt --all --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Test
+        run: cargo test --workspace

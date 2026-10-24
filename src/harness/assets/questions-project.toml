@@ -1,0 +1,37 @@
+# Onboarding questions about one project. Ids are fixed: each one is a section of BRIEF.md.
+
+[[question]]
+id = "what"
+text = "What is this project, in one or two sentences?"
+
+[[question]]
+id = "customers"
+text = "Who are its customers or users?"
+
+[[question]]
+id = "modules"
+text = "What are its main modules or parts?"
+
+[[question]]
+id = "stack"
+text = "Which languages, frameworks and services does it use?"
+
+[[question]]
+id = "environments"
+text = "Which environments does it run in (local, staging, production) and where?"
+
+[[question]]
+id = "status"
+text = "What is its status right now?"
+
+[[question]]
+id = "goals"
+text = "What are its current goals?"
+
+[[question]]
+id = "risks"
+text = "What are its main risks or open problems?"
+
+[[question]]
+id = "related_repos"
+text = "Which other repos or projects is it tied to?"

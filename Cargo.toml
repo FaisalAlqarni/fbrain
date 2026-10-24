@@ -1,0 +1,56 @@
+[package]
+name = "fbrain"
+version = "0.1.0"
+edition = "2021"
+description = "Markdown brain for coding agents"
+repository = "https://github.com/FaisalAlqarni/fbrain"
+license = "MIT"
+readme = "README.md"
+keywords = ["markdown", "notes", "search", "mcp", "agents"]
+categories = ["command-line-utilities"]
+
+[workspace]
+members = [".", "crates/fbrain-bench"]
+default-members = [".", "crates/fbrain-bench"]
+
+[dependencies]
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+dirs = "6"
+fd-lock = "4.0.4"
+getrandom = "0.3"
+ignore = "0.4"
+interprocess = "2"
+ort = "=2.0.0-rc.15"
+rmcp = { version = "3.7", default-features = false, features = ["server", "macros", "transport-io"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde_norway = "0.9"
+sha2 = "0.10"
+tokio = { version = "1", default-features = false, features = ["rt", "macros"] }
+tokenizers = { version = "0.22", default-features = false, features = ["fancy-regex"] }
+toml = "0.8"
+toml_edit = "0.22"
+unicode-normalization = "0.1.26"
+ureq = { version = "2", default-features = false, features = ["tls"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[target."cfg(windows)".dependencies]
+widestring = "1"
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_Security_Authorization", "Win32_System_Threading", "Win32_System_Console", "Win32_System_ProcessStatus", "Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+assert_cmd = "2"
+tempfile = "3"
+predicates = "3"
+serde_json = { version = "1", features = ["preserve_order"] }
+
+# Checksums over a 190 MB model and tokenizer parsing are slow unoptimised.
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.dist]
+inherits = "release"
+lto = "thin"

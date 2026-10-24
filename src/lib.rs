@@ -1,0 +1,16 @@
+pub mod brain;
+pub mod brief;
+pub mod cli;
+pub mod config;
+pub mod doctor;
+pub mod harness;
+pub mod index;
+pub mod interview;
+pub mod links;
+pub mod lint;
+pub mod mcp;
+pub mod note;
+pub mod proposals;
+pub mod review;
+pub mod search;
+pub mod serve;

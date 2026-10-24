@@ -1,0 +1,33 @@
+# Onboarding questions about the person. Ids are fixed: each one is a section of ME.md.
+
+[[question]]
+id = "role"
+text = "What is your role, and what do you do day to day?"
+
+[[question]]
+id = "products"
+text = "Which products or projects do you run or work on?"
+
+[[question]]
+id = "stack"
+text = "Which languages, frameworks and tools do you use by default?"
+
+[[question]]
+id = "machines"
+text = "Which machines and operating systems do you work on?"
+
+[[question]]
+id = "work_rules"
+text = "Which working rules should every agent follow (testing, commits, review, style)?"
+
+[[question]]
+id = "goals"
+text = "What are your current goals?"
+
+[[question]]
+id = "anti_goals"
+text = "What do you not want (things to avoid or never do)?"
+
+[[question]]
+id = "chat_language"
+text = "Which language should agents use when they talk to you?"

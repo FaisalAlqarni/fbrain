@@ -1,0 +1,7 @@
+{
+  "setup": "cargo fetch",
+  "test_one": "cargo test --test {name}",
+  "test_scope": "cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test",
+  "test_all": "cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test",
+  "stacks": []
+}

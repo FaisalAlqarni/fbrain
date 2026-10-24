@@ -1,0 +1,31 @@
+# Five queries against tests/fixtures/brains/search. `expect` lists relative paths, best first.
+
+[[query]]
+id = "q01"
+text = "consent opt-out"
+lang = "en"
+expect = ["projects/alpha/consent.md"]
+
+[[query]]
+id = "q02"
+text = "rollout checklist before every release"
+lang = "en"
+expect = ["projects/alpha/handbook.md"]
+
+[[query]]
+id = "q03"
+text = "Rust SQLite HTTP layer"
+lang = "en"
+expect = ["projects/beta/stack.md"]
+
+[[query]]
+id = "q04"
+text = "الموافقة قبل حفظ جلسة"
+lang = "ar"
+expect = ["projects/beta/ar-consent.md"]
+
+[[query]]
+id = "q05"
+text = "إشعار privacy"
+lang = "mixed"
+expect = ["projects/beta/ar-notice.md"]
