@@ -692,20 +692,34 @@ fn doctor_never_starts_a_server_even_when_the_status_call_is_cut_off() {
         .assert()
         .success();
     let old = sb.server_pid().unwrap();
-    // Killed while doctor's status call waits on it (doctor's own checks take well under 6 s).
-    let killer = std::thread::spawn(move || {
-        std::thread::sleep(Duration::from_secs(6));
-        std::process::Command::new("kill")
-            .args(["-9", &old.to_string()])
-            .status()
-            .unwrap();
-    });
-    let out = fb(&sb, &b)
+    let doctor = sb
+        .std_cmd()
+        .arg("--brain")
+        .arg(&b)
         .arg("doctor")
-        .timeout(Duration::from_secs(60))
-        .output()
+        .stdout(std::process::Stdio::piped())
+        .spawn()
         .unwrap();
-    killer.join().unwrap();
+    // Killed while doctor's status call waits on it: on Linux once doctor holds a socket, which
+    // a slow machine reaches late; elsewhere after a delay doctor's own checks fit in.
+    #[cfg(target_os = "linux")]
+    wait_until("doctor to connect to the server", 60, || {
+        fs::read_dir(format!("/proc/{}/fd", doctor.id()))
+            .into_iter()
+            .flatten()
+            .flatten()
+            .any(|f| {
+                fs::read_link(f.path()).is_ok_and(|l| l.to_string_lossy().starts_with("socket:"))
+            })
+    });
+    #[cfg(not(target_os = "linux"))]
+    std::thread::sleep(Duration::from_secs(6));
+    std::thread::sleep(Duration::from_millis(300));
+    std::process::Command::new("kill")
+        .args(["-9", &old.to_string()])
+        .status()
+        .unwrap();
+    let out = doctor.wait_with_output().unwrap();
     let stdout = String::from_utf8_lossy(&out.stdout);
     assert!(stdout.contains("warn: serve: "), "{stdout}");
     wait_until("the killed server to go", 5, || !alive(old));

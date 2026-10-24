@@ -531,15 +531,16 @@ fn initialize_answers_before_the_resident_process_is_ready_and_search_says_start
 }
 
 #[cfg(target_os = "linux")]
-fn threads(pid: u32) -> usize {
-    fs::read_to_string(format!("/proc/{pid}/status"))
+/// Threads of `pid` blocked in a read on a Unix socket.
+fn socket_readers(pid: u32) -> usize {
+    fs::read_dir(format!("/proc/{pid}/task"))
         .unwrap()
-        .lines()
-        .find_map(|l| l.strip_prefix("Threads:"))
-        .unwrap()
-        .trim()
-        .parse()
-        .unwrap()
+        .flatten()
+        .filter(|t| {
+            fs::read_to_string(t.path().join("wchan"))
+                .is_ok_and(|w| w.starts_with("unix_stream_read"))
+        })
+        .count()
 }
 
 #[cfg(target_os = "linux")]
@@ -568,20 +569,23 @@ fn a_hung_resident_process_opens_the_breaker_and_leaks_no_threads() {
         );
         std::thread::sleep(Duration::from_millis(200));
     }
-    let before = threads(c.child.id());
     for _ in 0..8 {
         let r = c.ok("search", q.clone());
         assert_eq!(r["semantic"], false, "{r}");
         assert_eq!(paths(&r["hits"])[0], "projects/alpha/consent.md");
     }
-    // A timed-out call's helper thread exits just after the call returns; give it a moment.
+    // A leaked helper stays blocked reading the socket. The total thread count is no measure:
+    // tokio's blocking pool grows and keeps idle threads for a while on a busy machine.
     let settle = Instant::now() + Duration::from_secs(2);
-    let mut after = threads(c.child.id());
-    while after > before + 1 && Instant::now() < settle {
+    let mut stuck = socket_readers(c.child.id());
+    while stuck > 0 && Instant::now() < settle {
         std::thread::sleep(Duration::from_millis(50));
-        after = threads(c.child.id());
+        stuck = socket_readers(c.child.id());
     }
-    assert!(after <= before + 1, "threads grew from {before} to {after}");
+    assert_eq!(
+        stuck, 0,
+        "threads still blocked reading the resident process socket"
+    );
     // Breaker open: the next search does not wait for the timeout.
     let t = Instant::now();
     let r = c.ok("search", q);
@@ -630,7 +634,8 @@ fn error_text(r: &Value) -> String {
     r["content"][0]["text"].as_str().unwrap().to_string()
 }
 
-#[cfg(unix)]
+// Only Linux reports the peer pid that exposes the lie; macOS relies on the 0700 runtime dir.
+#[cfg(target_os = "linux")]
 #[test]
 fn an_endpoint_that_is_not_the_resident_process_is_an_error_not_keyword_hits() {
     let sb = Sandbox::new();
