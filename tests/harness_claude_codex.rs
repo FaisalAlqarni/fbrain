@@ -107,8 +107,10 @@ fn the_command_starts_with_the_binary_path_and_the_original_is_backed_up() {
         .as_str()
         .unwrap()
         .to_string();
+    // The Claude Code hook runs in a POSIX shell, so Windows paths are written with `/`.
+    let shown = FBRAIN.replace('\\', "/");
     assert!(
-        cmd.starts_with(&format!("'{FBRAIN}' ")) && cmd.ends_with(" brief --harness claude-code"),
+        cmd.starts_with(&format!("'{shown}' ")) && cmd.ends_with(" brief --harness claude-code"),
         "{cmd}"
     );
     let bak = fs::read(sb.root.join("claude/settings.json.fbrain-bak")).unwrap();

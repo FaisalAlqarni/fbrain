@@ -12,7 +12,7 @@ fn text(o: &std::process::Output) -> String {
 }
 
 fn settings(sb: &Sandbox) -> PathBuf {
-    sb.root.join("claude/settings.json")
+    sb.root.join("claude").join("settings.json")
 }
 
 /// Downloads (copies) the test model so a later `doctor` has no model failure of its own.
@@ -187,7 +187,9 @@ fn doctor_fix_reinstalls_with_the_recorded_binary_not_the_running_one() {
     let cmd = v["hooks"]["SessionStart"][0]["hooks"][0]["command"]
         .as_str()
         .unwrap();
-    assert!(cmd.starts_with(&format!("'{}' ", copy.display())), "{cmd}");
+    // The Claude Code hook runs in a POSIX shell, so Windows paths are written with `/`.
+    let shown = copy.display().to_string().replace('\\', "/");
+    assert!(cmd.starts_with(&format!("'{shown}' ")), "{cmd}");
     assert!(
         text(&o).contains(&settings(&sb).display().to_string()),
         "{}",

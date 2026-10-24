@@ -146,6 +146,13 @@ fn default_runtime_dir() -> Result<PathBuf> {
     Ok(config::cache_dir()?.join("run"))
 }
 
+/// Keeps this process's stdio out of the children it starts (Windows; elsewhere a child gets
+/// only the descriptors it is handed). Call it before starting a child that may start the server.
+pub fn private_stdio() {
+    #[cfg(windows)]
+    sys::private_stdio();
+}
+
 /// The version this server reports; tests replace it with `FBRAIN_TEST_FAKE_VERSION`.
 fn server_version() -> String {
     std::env::var("FBRAIN_TEST_FAKE_VERSION")
@@ -1643,11 +1650,33 @@ mod sys {
         Ok(np.into())
     }
 
+    /// Stops this process's stdin, stdout and stderr from leaking into children it starts. A
+    /// child inherits every inheritable handle; our stdio is often a pipe someone reads to its
+    /// end (a test, an agent's shell tool), and a long-lived server would hold it open until it
+    /// exits. Rust hands a child its own stdio as fresh duplicates, so nothing else changes.
+    pub fn private_stdio() {
+        use windows_sys::Win32::Foundation::{SetHandleInformation, HANDLE_FLAG_INHERIT};
+        use windows_sys::Win32::System::Console::{
+            GetStdHandle, STD_ERROR_HANDLE, STD_INPUT_HANDLE, STD_OUTPUT_HANDLE,
+        };
+        for id in [STD_INPUT_HANDLE, STD_OUTPUT_HANDLE, STD_ERROR_HANDLE] {
+            // SAFETY: GetStdHandle has no preconditions; SetHandleInformation fails harmlessly on
+            // a null or invalid handle.
+            unsafe {
+                let h = GetStdHandle(id);
+                if !h.is_null() && h != INVALID_HANDLE_VALUE {
+                    SetHandleInformation(h, HANDLE_FLAG_INHERIT, 0);
+                }
+            }
+        }
+    }
+
     pub fn detach(cmd: &mut std::process::Command) {
         use std::os::windows::process::CommandExt;
         const DETACHED_PROCESS: u32 = 0x0000_0008;
         const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
         cmd.creation_flags(DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP);
+        private_stdio();
     }
 
     static RUNTIME: OnceLock<PathBuf> = OnceLock::new();

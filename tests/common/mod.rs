@@ -14,7 +14,13 @@ pub struct Sandbox {
 impl Sandbox {
     pub fn new() -> Self {
         let tmp = tempfile::tempdir().unwrap();
+        // Plain `C:\...` on Windows, as a user would type it: canonicalize adds `\\?\`, which
+        // tools such as node do not accept.
         let root = tmp.path().canonicalize().unwrap();
+        let root = match root.to_str().and_then(|r| r.strip_prefix(r"\\?\")) {
+            Some(plain) if cfg!(windows) => PathBuf::from(plain),
+            _ => root,
+        };
         for d in [
             "config",
             "cache",
@@ -37,6 +43,16 @@ impl Sandbox {
 
     pub fn config_dir(&self) -> PathBuf {
         self.root.join("config")
+    }
+
+    /// The stub standing in for `tool` (`claude`, `codex`, `opencode`) on PATH.
+    pub fn stub(&self, tool: &str) -> PathBuf {
+        let name = if cfg!(windows) {
+            format!("{tool}.cmd")
+        } else {
+            tool.to_string()
+        };
+        self.root.join("bin").join(name)
     }
 
     pub fn stub_log(&self) -> PathBuf {
@@ -327,7 +343,8 @@ fn write_stub(bin: &Path, tool: &str) {
 fn write_stub(bin: &Path, tool: &str) {
     fs::write(
         bin.join(format!("{tool}.cmd")),
-        format!("@echo off\r\necho {tool} %* >> \"%FBRAIN_STUB_LOG%\"\r\n"),
+        // Redirect first: `echo x %* >> f` would log a trailing space.
+        format!("@echo off\r\n>> \"%FBRAIN_STUB_LOG%\" echo {tool} %*\r\n"),
     )
     .unwrap();
 }

@@ -12,11 +12,11 @@ const OPENCODE_JSON: &str = "{\"model\":\"x\",\"plugin\":[\"other\"]}";
 const NOT_LOADED: &str = "fbrain memory not loaded: fbrain binary not found. Run fbrain doctor.";
 
 fn config_dir(sb: &Sandbox) -> PathBuf {
-    sb.root.join("xdg-config/opencode")
+    sb.root.join("xdg-config").join("opencode")
 }
 
 fn plugin(sb: &Sandbox) -> PathBuf {
-    config_dir(sb).join("plugins/fbrain.js")
+    config_dir(sb).join("plugins").join("fbrain.js")
 }
 
 fn seed_json(sb: &Sandbox) -> PathBuf {

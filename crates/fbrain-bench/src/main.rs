@@ -226,6 +226,8 @@ fn measured(
 }
 
 fn rss_child(args: &[OsString]) -> ! {
+    // Our stdout is the pipe the bench reads; the server a search starts must not inherit it.
+    serve::private_stdio();
     let t = Instant::now();
     let ok = Command::new(&args[0])
         .args(&args[1..])

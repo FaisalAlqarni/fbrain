@@ -27,7 +27,7 @@ const BLOCK_LINE: &str = include_str!("assets/agents-md-block.md");
 pub fn config_dir() -> Result<PathBuf> {
     let base = match std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty()) {
         Some(d) => PathBuf::from(d),
-        None => dirs::home_dir()
+        None => crate::config::home_dir()
             .context("cannot find the home folder")?
             .join(".config"),
     };

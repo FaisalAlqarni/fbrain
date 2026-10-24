@@ -163,9 +163,32 @@ fn norm(p: &str) -> String {
     }
 }
 
+/// `p` as a user would write it: Windows' canonical `\\?\C:\x` becomes `C:\x` and
+/// `\\?\UNC\host\share` becomes `\\host\share`. Other paths are unchanged.
+pub fn plain_path(p: &Path) -> String {
+    let s = p.to_string_lossy();
+    if let Some(unc) = s.strip_prefix(r"\\?\UNC\") {
+        return format!(r"\\{unc}");
+    }
+    match s.strip_prefix(r"\\?\") {
+        Some(rest) if rest.as_bytes().get(1) == Some(&b':') => rest.to_string(),
+        _ => s.into_owned(),
+    }
+}
+
+/// The user's home folder. On Windows `USERPROFILE` comes first, as Node's `os.homedir()` reads it
+/// (Claude Code and opencode find their config there); `dirs` asks the OS profile API only.
+pub fn home_dir() -> Option<PathBuf> {
+    #[cfg(windows)]
+    if let Some(h) = std::env::var_os("USERPROFILE").filter(|v| !v.is_empty()) {
+        return Some(PathBuf::from(h));
+    }
+    dirs::home_dir()
+}
+
 /// `~` expanded and the existing part canonicalised; `dir` is the directory half of a glob.
 fn canon(p: &str) -> String {
-    let expanded = match (p.strip_prefix('~'), dirs::home_dir()) {
+    let expanded = match (p.strip_prefix('~'), home_dir()) {
         (Some(rest), Some(h)) if rest.is_empty() || rest.starts_with(['/', '\\']) => {
             format!("{}{rest}", h.display())
         }
@@ -355,6 +378,20 @@ pub fn resolve_brain(explicit: Option<&str>, cwd: &Path) -> Result<BrainRef> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn plain_path_drops_only_the_windows_verbatim_prefix() {
+        assert_eq!(plain_path(Path::new(r"\\?\C:\Users\a")), r"C:\Users\a");
+        assert_eq!(
+            plain_path(Path::new(r"\\?\UNC\host\share\x")),
+            r"\\host\share\x"
+        );
+        assert_eq!(
+            plain_path(Path::new(r"\\?\Volume{x}\a")),
+            r"\\?\Volume{x}\a"
+        );
+        assert_eq!(plain_path(Path::new("/home/a")), "/home/a");
+    }
 
     #[test]
     fn missing_env_and_os_dir_is_an_error() {

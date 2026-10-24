@@ -289,15 +289,12 @@ fn approving_the_brief_maps_the_repo_so_the_session_brief_finds_it() {
         .assert()
         .success();
     commit_all(&b, "proposals");
-    let canon = a.canonicalize().unwrap();
+    let shown = canon(&a);
     let (id, text) = inbox(&b)
         .into_iter()
         .find(|(_, t)| t.contains("target: projects/shop/BRIEF.md"))
         .unwrap();
-    assert!(
-        text.contains(&format!("map_repo: {}", canon.display())),
-        "{text}"
-    );
+    assert!(text.contains(&format!("map_repo: {shown}")), "{text}");
     let id = id.trim_end_matches(".md").to_string();
     sb.cmd()
         .arg("--brain")
@@ -319,10 +316,7 @@ fn approving_the_brief_maps_the_repo_so_the_session_brief_finds_it() {
         .unwrap()
         .parse()
         .unwrap();
-    assert_eq!(
-        cfg["projects"]["shop"]["repos"][0].as_str().unwrap(),
-        canon.to_str().unwrap()
-    );
+    assert_eq!(cfg["projects"]["shop"]["repos"][0].as_str().unwrap(), shown);
     let out = sb
         .cmd()
         .current_dir(&a)
@@ -575,7 +569,7 @@ fn map_repo_is_stored_canonical() {
     let id = hand_proposal(
         &b,
         "projects/shop/BRIEF.md",
-        &format!("map_repo: \"{odd}\"\n"),
+        &format!("map_repo: '{odd}'\n"),
     );
     approve(&sb, &b, &id).success();
     let cfg: toml::Table = fs::read_to_string(b.join(".fbrain.toml"))
@@ -584,7 +578,7 @@ fn map_repo_is_stored_canonical() {
         .unwrap();
     assert_eq!(
         cfg["projects"]["shop"]["repos"][0].as_str().unwrap(),
-        r.canonicalize().unwrap().to_str().unwrap()
+        canon(&r)
     );
 }
 
@@ -599,11 +593,7 @@ fn map_repo_refuses_root_home_the_brain_and_its_ancestors() {
         sb.root.display().to_string(),
     ];
     for c in cases {
-        let id = hand_proposal(
-            &b,
-            "projects/shop/BRIEF.md",
-            &format!("map_repo: \"{c}\"\n"),
-        );
+        let id = hand_proposal(&b, "projects/shop/BRIEF.md", &format!("map_repo: '{c}'\n"));
         approve_fails_with(&sb, &b, &id, "map_repo");
         assert!(!b.join("projects/shop").exists(), "{c}");
         fs::remove_file(b.join(format!("inbox/{id}.md"))).unwrap();
@@ -618,15 +608,15 @@ fn map_repo_cannot_add_a_second_repo_to_a_project_that_maps_another() {
     fs::write(
         b.join(".fbrain.toml"),
         format!(
-            "name = \"basic\"\n\n[projects.shop]\nrepos = [\"{}\"]\n",
-            other.canonicalize().unwrap().display()
+            "name = \"basic\"\n\n[projects.shop]\nrepos = ['{}']\n",
+            canon(&other)
         ),
     )
     .unwrap();
     let id = hand_proposal(
         &b,
         "projects/shop/BRIEF.md",
-        &format!("map_repo: \"{}\"\n", r.display()),
+        &format!("map_repo: '{}'\n", r.display()),
     );
     approve_fails_with(&sb, &b, &id, "already maps");
     fs::remove_file(b.join(format!("inbox/{id}.md"))).unwrap();
@@ -634,7 +624,7 @@ fn map_repo_cannot_add_a_second_repo_to_a_project_that_maps_another() {
     let id = hand_proposal(
         &b,
         "projects/shop/BRIEF.md",
-        &format!("map_repo: \"{}\"\n", other.display()),
+        &format!("map_repo: '{}'\n", other.display()),
     );
     approve(&sb, &b, &id).success();
 }
@@ -649,7 +639,7 @@ fn review_caps_description_and_projects() {
         &b,
         "projects/shop/BRIEF.md",
         &format!(
-            "description: {long}\nprojects: [shop]\nmap_repo: \"{}\"\n",
+            "description: {long}\nprojects: [shop]\nmap_repo: '{}'\n",
             r.display()
         ),
     );
@@ -691,7 +681,7 @@ fn a_failed_approve_leaves_no_new_directory_behind() {
     let id = hand_proposal(
         &b,
         "projects/shop/BRIEF.md",
-        &format!("map_repo: \"{}\"\n", r.display()),
+        &format!("map_repo: '{}'\n", r.display()),
     );
     approve(&sb, &b, &id).failure();
     assert!(!b.join("projects/shop").exists());
@@ -710,7 +700,7 @@ fn approving_into_a_brain_reached_through_a_symlink_creates_the_project_folder()
     let id = hand_proposal(
         &b,
         "projects/shop/BRIEF.md",
-        &format!("map_repo: \"{}\"\n", r.display()),
+        &format!("map_repo: '{}'\n", r.display()),
     );
     commit_all(&b, "proposals");
     sb.cmd()
@@ -755,4 +745,10 @@ fn lint_fix_writes_into_a_brain_reached_through_a_symlink() {
     assert!(fs::read_to_string(b.join("projects/alpha/old.md"))
         .unwrap()
         .contains("valid_to:"));
+}
+
+/// The canonical path as fbrain stores and shows it: without Windows' `\\?\` prefix.
+fn canon(p: &Path) -> String {
+    let c = p.canonicalize().unwrap().display().to_string();
+    c.strip_prefix(r"\\?\").map(str::to_string).unwrap_or(c)
 }

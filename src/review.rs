@@ -177,15 +177,14 @@ fn map_repo_config(brain: &Brain, p: &Proposal, target: &str) -> Result<Option<C
         .filter(|r| r.is_dir())
         .ok_or_else(|| bad("must be an absolute path to an existing directory"))?;
     let root = brain.path.canonicalize()?;
-    let home = dirs::home_dir().and_then(|h| h.canonicalize().ok());
+    let home = crate::config::home_dir().and_then(|h| h.canonicalize().ok());
     if repo.parent().is_none() || home.as_ref() == Some(&repo) || root.starts_with(&repo) {
         return Err(bad(
             "refusing the filesystem root, the home folder, the brain or a folder that holds it",
         )
         .into());
     }
-    let repo = repo.to_string_lossy();
-    let repo = repo.strip_prefix(r"\\?\").unwrap_or(&repo).to_string();
+    let repo = crate::config::plain_path(&repo);
     let before = read_note(brain, CONFIG_FILE)?;
     let mut doc: toml_edit::DocumentMut = before
         .clone()

@@ -20,7 +20,7 @@ pub const TRUST_REMINDER: &str =
 pub fn hooks_path() -> Result<PathBuf> {
     let dir = match std::env::var_os("CODEX_HOME").filter(|v| !v.is_empty()) {
         Some(d) => PathBuf::from(d),
-        None => dirs::home_dir()
+        None => crate::config::home_dir()
             .context("cannot find the home folder")?
             .join(".codex"),
     };

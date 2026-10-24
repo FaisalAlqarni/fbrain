@@ -258,7 +258,8 @@ fn write_config(path: &Path, name: &str, include: &[String]) -> Result<()> {
 }
 
 fn register(user: &mut UserConfig, path: &Path, name: &str, force: bool) -> Result<()> {
-    user.register(name, &path.canonicalize()?, force)?;
+    let path = crate::config::plain_path(&path.canonicalize()?);
+    user.register(name, Path::new(&path), force)?;
     user.save()
 }
 

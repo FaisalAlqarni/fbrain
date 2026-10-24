@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 pub fn settings_path() -> Result<PathBuf> {
     let dir = match std::env::var_os("CLAUDE_CONFIG_DIR").filter(|v| !v.is_empty()) {
         Some(d) => PathBuf::from(d),
-        None => dirs::home_dir()
+        None => crate::config::home_dir()
             .context("cannot find the home folder")?
             .join(".claude"),
     };

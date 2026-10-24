@@ -86,7 +86,7 @@ fn claude_code_install_twice_registers_once_and_without_mcp_adds_nothing() {
 #[test]
 fn claude_code_without_the_claude_cli_exits_1_with_the_manual_command() {
     let sb = Sandbox::new();
-    fs::remove_file(sb.root.join("bin/claude")).unwrap();
+    fs::remove_file(sb.stub("claude")).unwrap();
     // Only the sandbox bin (no claude) and the system dirs `sh` lives in.
     let out = sb
         .cmd()

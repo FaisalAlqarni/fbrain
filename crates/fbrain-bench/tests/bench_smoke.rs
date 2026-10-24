@@ -184,7 +184,12 @@ fn report_splits_recall_by_kind_and_scores_the_embedding_channel_alone() {
         assert!(s[f].as_f64().is_some_and(|x| x > 0.0), "serve.{f}: {v}");
     }
     assert_eq!(s["recall_at_5"], v["recall_at_5"], "{v}");
-    assert_eq!(sb.server_pid(), None, "the bench left its server running");
+    // A forced stop (Windows) leaves the pid file behind; what matters is the process.
+    assert_eq!(
+        sb.server_pid().filter(|p| common::alive(*p)),
+        None,
+        "the bench left its server running"
+    );
 }
 
 /// A server still loading when the bench connects must be waited for, not replaced by a
@@ -222,7 +227,12 @@ fn a_semantic_run_waits_for_a_server_that_is_still_loading() {
     let err = String::from_utf8_lossy(&assert.get_output().stderr).into_owned();
     assert!(!err.contains("unexpected argument 'serve'"), "{err}");
     assert.success();
-    assert_eq!(sb.server_pid(), None, "the bench left its server running");
+    // A forced stop (Windows) leaves the pid file behind; what matters is the process.
+    assert_eq!(
+        sb.server_pid().filter(|p| common::alive(*p)),
+        None,
+        "the bench left its server running"
+    );
 }
 
 #[test]

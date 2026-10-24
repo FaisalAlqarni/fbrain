@@ -688,12 +688,6 @@ fn brief_body(brain: &Brain, scan: &Scan, answers: &Answers) -> Option<(String, 
     }
 }
 
-/// Strips the Windows verbatim prefix, so the stored path is the one the user would type.
-fn plain_path(p: &Path) -> String {
-    let s = p.to_string_lossy();
-    s.strip_prefix(r"\\?\").unwrap_or(&s).to_string()
-}
-
 /// Writes the profile and one brief per repo as proposals; the brain tree is not touched.
 pub fn onboard(brain: &Brain, repos: &[PathBuf], answers: &Answers) -> Result<Vec<Proposal>> {
     let scans = scan_all(repos)?;
@@ -732,7 +726,10 @@ pub fn onboard_scans(brain: &Brain, scans: &[Scan], answers: &Answers) -> Result
             extra: vec![
                 ("description".into(), FmValue::Str(description)),
                 ("projects".into(), FmValue::List(vec![scan.name.clone()])),
-                ("map_repo".into(), FmValue::Str(plain_path(&scan.repo))),
+                (
+                    "map_repo".into(),
+                    FmValue::Str(crate::config::plain_path(&scan.repo)),
+                ),
             ],
         });
     }
@@ -867,9 +864,10 @@ pub fn interview_project(
         }
     }
     if let Some(s) = &scan {
-        input
-            .extra
-            .push(("map_repo".into(), FmValue::Str(plain_path(&s.repo))));
+        input.extra.push((
+            "map_repo".into(),
+            FmValue::Str(crate::config::plain_path(&s.repo)),
+        ));
     }
     submit(brain, vec![input])
 }

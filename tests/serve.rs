@@ -104,6 +104,41 @@ fn wait_until(what: &str, secs: u64, mut f: impl FnMut() -> bool) {
     }
 }
 
+/// A caller that reads a search's output must not wait for the server that search started: on
+/// Windows a child inherits every inheritable handle, the search's stdout and stderr included.
+#[test]
+fn a_search_that_starts_the_server_returns_while_the_server_keeps_running() {
+    let _slot = slot();
+    let sb = Sandbox::new();
+    let b = ready(&sb);
+    let mut child = sb
+        .std_cmd()
+        .arg("--brain")
+        .arg(&b)
+        .args(["search", "refund policy"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    // Read to end of file on a thread: a pipe the server inherited never ends, and the test must
+    // fail instead of hanging until that server exits.
+    let mut out = child.stdout.take().unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let mut s = String::new();
+        let _ = std::io::Read::read_to_string(&mut out, &mut s);
+        let _ = tx.send(s);
+    });
+    let text = rx
+        .recv_timeout(Duration::from_secs(90))
+        .expect("the search's output stayed open after it exited: the server holds the pipe");
+    assert!(child.wait().unwrap().success());
+    assert!(text.contains("refund"), "{text}");
+    assert!(
+        sb.server_pid().is_some_and(alive),
+        "the server it started should keep running"
+    );
+}
 #[test]
 fn the_first_search_starts_a_server_that_doctor_reports() {
     let _slot = slot();
