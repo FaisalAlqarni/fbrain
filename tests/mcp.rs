@@ -574,7 +574,13 @@ fn a_hung_resident_process_opens_the_breaker_and_leaks_no_threads() {
         assert_eq!(r["semantic"], false, "{r}");
         assert_eq!(paths(&r["hits"])[0], "projects/alpha/consent.md");
     }
-    let after = threads(c.child.id());
+    // A timed-out call's helper thread exits just after the call returns; give it a moment.
+    let settle = Instant::now() + Duration::from_secs(2);
+    let mut after = threads(c.child.id());
+    while after > before + 1 && Instant::now() < settle {
+        std::thread::sleep(Duration::from_millis(50));
+        after = threads(c.child.id());
+    }
     assert!(after <= before + 1, "threads grew from {before} to {after}");
     // Breaker open: the next search does not wait for the timeout.
     let t = Instant::now();
