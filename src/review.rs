@@ -485,6 +485,9 @@ pub(crate) fn best_effort_perms(res: std::io::Result<()>) -> std::io::Result<()>
     use std::io::ErrorKind::{PermissionDenied, Unsupported};
     match res {
         Err(e) if matches!(e.kind(), PermissionDenied | Unsupported) => Ok(()),
+        // macOS reports ENOTSUP (45), which std does not map to Unsupported.
+        #[cfg(unix)]
+        Err(e) if e.raw_os_error() == Some(libc::ENOTSUP) => Ok(()),
         other => other,
     }
 }

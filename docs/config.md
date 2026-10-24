@@ -52,6 +52,7 @@ re-embeds every chunk on the next command.
 | `FBRAIN_OFFLINE=1` | Every download attempt fails with `offline: network disabled (FBRAIN_OFFLINE=1)`. Tests and CI use it to prove no network use. |
 | `FBRAIN_MODEL` | Model id, above `.fbrain.toml`. |
 | `FBRAIN_TEST_MODEL_DIR` | A folder holding the default model's files (`tokenizer.json`, `onnx/model_q4.onnx`, `onnx/model_q4.onnx_data`). Replaces Hugging Face as the download source. Tests that need a model read it and fail when it is unset. |
+| `FBRAIN_TEST_START_WAIT_MS` | How long a client waits for a resident process it started to become ready (default 3000). CI raises it because many tests load the model at once. |
 
 ## Test model
 

@@ -58,3 +58,6 @@ jobs:
         run: cargo clippy --workspace --all-targets --keep-going -- -D warnings
       - name: Test
         run: cargo test --workspace
+        env:
+          # Many tests load the model at once on a small runner; the 3 s default is for one user.
+          FBRAIN_TEST_START_WAIT_MS: "30000"

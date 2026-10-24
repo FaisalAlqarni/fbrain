@@ -148,6 +148,7 @@ fn codex_gets_one_mcp_table_and_uninstall_takes_out_only_that() {
     assert_eq!(toml_of(&codex_config(&sb)), before);
 }
 
+#[cfg(unix)]
 /// A `claude` that remembers whether `fbrain` is registered, like the real CLI. `add_fails`
 /// makes `mcp add` exit 1; `remove_error` is what `mcp remove` says when it fails.
 fn stateful_claude(sb: &Sandbox, add_fails: bool) {
@@ -176,6 +177,7 @@ fn claude_hooks_are_fbrain(sb: &Sandbox) -> bool {
         .is_ok_and(|t| t.contains("brief --harness"))
 }
 
+#[cfg(unix)]
 #[test]
 fn a_failed_claude_add_leaves_the_hooks_recorded_and_uninstall_removes_them() {
     let sb = Sandbox::new();
@@ -197,6 +199,7 @@ fn a_failed_claude_add_leaves_the_hooks_recorded_and_uninstall_removes_them() {
     assert!(!claude_hooks_are_fbrain(&sb));
 }
 
+#[cfg(unix)]
 #[test]
 fn uninstall_does_not_fail_when_the_claude_server_is_already_gone() {
     let sb = Sandbox::new();
@@ -232,6 +235,7 @@ fn uninstall_still_fails_when_claude_remove_fails_for_another_reason() {
     assert!(claude_hooks_are_fbrain(&sb));
 }
 
+#[cfg(unix)]
 #[test]
 fn doctor_reports_a_missing_claude_server_and_fix_adds_it_again() {
     let sb = Sandbox::new();

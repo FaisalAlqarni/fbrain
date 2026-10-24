@@ -22,7 +22,13 @@ use std::time::{Duration, Instant};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// How long a client waits for a server it started to print its ready line.
-const START_WAIT: Duration = Duration::from_secs(3);
+/// `FBRAIN_TEST_START_WAIT_MS` raises it where many tests load the model at once (CI).
+fn start_wait() -> Duration {
+    std::env::var("FBRAIN_TEST_START_WAIT_MS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .map_or(Duration::from_secs(3), Duration::from_millis)
+}
 /// Longest request or reply line in bytes.
 const MAX_LINE: u64 = 8 << 20;
 const MAX_QUERY_CHARS: usize = 10_000;
@@ -875,7 +881,7 @@ impl Client {
     /// bench) names the binary that has the `serve` command.
     pub fn connect_or_start_with(exe: &Path, model_id: &str) -> Result<Client> {
         let rt = runtime_dir()?;
-        let deadline = Instant::now() + START_WAIT * 2;
+        let deadline = Instant::now() + start_wait() * 2;
         loop {
             let why = match try_connect(&rt, model_id)? {
                 Attempt::Connected(c) => {
@@ -896,7 +902,7 @@ impl Client {
             if Instant::now() > deadline {
                 bail!(
                     "no server answered within {} s; last: {why}",
-                    (START_WAIT * 2).as_secs()
+                    (start_wait() * 2).as_secs()
                 );
             }
             std::thread::sleep(RETRY_PAUSE);
@@ -1149,7 +1155,7 @@ fn spawn_server(rt: &Path, exe: &Path, model_id: &str) -> Result<()> {
         let r = BufReader::new(stdout).read_line(&mut line).map(|_| line);
         let _ = tx.send(r);
     });
-    let line = match rx.recv_timeout(START_WAIT) {
+    let line = match rx.recv_timeout(start_wait()) {
         Ok(r) => r.context("cannot read the ready line of fbrain serve")?,
         Err(_) => {
             // Not killed: a slow load (a busy machine) finishes and the retry connects to it.
@@ -1160,7 +1166,7 @@ fn spawn_server(rt: &Path, exe: &Path, model_id: &str) -> Result<()> {
             });
             bail!(
                 "fbrain serve was not ready within {} s{}",
-                START_WAIT.as_secs(),
+                start_wait().as_secs(),
                 exit_detail(rt, pid, log_from)
             )
         }
