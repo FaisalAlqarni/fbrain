@@ -172,6 +172,7 @@ fn stateful_claude(sb: &Sandbox, add_fails: bool) {
     fs::set_permissions(&p, fs::Permissions::from_mode(0o755)).unwrap();
 }
 
+#[cfg(unix)]
 fn claude_hooks_are_fbrain(sb: &Sandbox) -> bool {
     fs::read_to_string(sb.root.join("claude/settings.json"))
         .is_ok_and(|t| t.contains("brief --harness"))
@@ -216,6 +217,7 @@ fn uninstall_does_not_fail_when_the_claude_server_is_already_gone() {
     assert!(!claude_hooks_are_fbrain(&sb));
 }
 
+#[cfg(unix)]
 #[test]
 fn uninstall_still_fails_when_claude_remove_fails_for_another_reason() {
     use std::os::unix::fs::PermissionsExt;

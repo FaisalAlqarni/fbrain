@@ -138,12 +138,15 @@ fn doctor_times_a_real_search_once_the_resident_process_runs() {
         "{}",
         text(&skipped)
     );
-    sb.cmd()
+    let searched = sb
+        .cmd()
         .arg("--brain")
         .arg(&brain)
         .args(["search", "refund policy"])
         .assert()
-        .success();
+        .success()
+        .get_output()
+        .clone();
     let o = sb
         .cmd()
         .arg("--brain")
@@ -162,7 +165,12 @@ fn doctor_times_a_real_search_once_the_resident_process_runs() {
         .strip_prefix("ok: search: ")
         .and_then(|r| r.strip_suffix(" ms"))
         .unwrap_or_default();
-    assert!(n.parse::<u64>().is_ok(), "{line}");
+    assert!(
+        n.parse::<u64>().is_ok(),
+        "{line}\nsearch stderr: {}\nserve.log: {}",
+        String::from_utf8_lossy(&searched.stderr),
+        fs::read_to_string(sb.runtime_dir().join("serve.log")).unwrap_or_default()
+    );
 }
 
 #[test]
