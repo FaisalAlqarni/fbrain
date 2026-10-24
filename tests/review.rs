@@ -661,8 +661,8 @@ fn interactive_review_through_a_terminal_approves_on_a() {
             &mut m,
             &mut s,
             std::ptr::null_mut(),
-            std::ptr::null(),
-            std::ptr::null(),
+            std::ptr::null_mut(),
+            std::ptr::null_mut(),
         )
     };
     assert_eq!(rc, 0);

@@ -643,6 +643,7 @@ fn an_endpoint_that_is_not_the_resident_process_is_an_error_not_keyword_hits() {
 
 /// A resident process that has loaded the model, so a test does not race the client's 3 s start wait
 /// on a slow machine.
+#[cfg(unix)]
 fn ready_server(sb: &Sandbox, env: &[(&str, &str)]) -> Child {
     let mut server = sb
         .std_cmd()
