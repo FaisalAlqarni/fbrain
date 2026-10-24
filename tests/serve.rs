@@ -604,13 +604,21 @@ fn a_live_server_whose_token_file_was_removed_is_replaced() {
     let _slot = slot();
     let sb = Sandbox::new();
     let b = ready(&sb);
+    // A cold start, the same work as the replacement plus the first embed of the brain.
+    let t = Instant::now();
     search(&sb, &b, "refund policy");
+    let cold = t.elapsed();
     let old = sb.server_pid().unwrap();
     fs::remove_file(sb.runtime_dir().join("serve.token")).unwrap();
     let t = Instant::now();
     let (hits, stderr) = search(&sb, &b, "opt out of marketing texts");
     assert!(!stderr.contains("semantic search off"), "{stderr}");
-    assert!(t.elapsed() < Duration::from_secs(5), "{:?}", t.elapsed());
+    // Replacing must not wait out a timeout (the handshake's is 5 s) on top of a start.
+    let took = t.elapsed();
+    assert!(
+        took < cold + Duration::from_secs(4),
+        "{took:?} after a {cold:?} cold start"
+    );
     assert!(hits.iter().any(|h| h["explain"]["embed_rank"].is_number()));
     assert_ne!(sb.server_pid(), Some(old));
     let log = fs::read_to_string(sb.runtime_dir().join("serve.log")).unwrap();
@@ -749,7 +757,8 @@ fn doctor_never_starts_a_server_even_when_the_status_call_is_cut_off() {
     });
     #[cfg(not(target_os = "linux"))]
     std::thread::sleep(Duration::from_secs(6));
-    std::thread::sleep(Duration::from_millis(300));
+    // Past the handshake and into the 15 s status call, with room for a busy machine.
+    std::thread::sleep(Duration::from_secs(3));
     std::process::Command::new("kill")
         .args(["-9", &old.to_string()])
         .status()
